@@ -123,7 +123,6 @@
   };
 
   Game.prototype.runThruSequence = function() {
-    this.DOM.body.style.pointerEvents = "none";
     for (let i = 0; i < this.state.count; i++) {
       const color = this.state.sequence[i];
       let self = this;
@@ -133,7 +132,6 @@
           self.sounds[color].play();
           setTimeout(() => {
             self.DOM[color].style.backgroundColor = `${color}`;
-            self.DOM.body.style.pointerEvents = "auto";
             return;
           }, 400);
         }, i * 1000);
@@ -147,7 +145,7 @@
       const gameInput = this.state.sequence[i];
       if (userInput !== gameInput && !this.state.strict) {
         this.resetCurrentRound();
-        alert("Press Okay to try again");
+        alert("Press OK to try again");
         return;
       }
       if (userInput !== gameInput && this.state.strict) {
@@ -163,6 +161,7 @@
     if (this.state.currentUserSequence.length === 20) {
       alert("You won! Yay!");
       this.reset();
+      return;
     }
 
     if (this.state.currentUserSequence.length === this.state.count) {
@@ -175,7 +174,7 @@
 
   Game.prototype.resetCurrentRound = function() {
     this.state.currentUserSequence = [];
-    this.DOM.count.textContent = `Count ${this.state.count}`;
+    this.DOM.count.textContent = `COUNT ${this.state.count}`;
     this.runThruSequence();
     return;
   };
@@ -183,7 +182,7 @@
   Game.prototype.nextRound = function() {
     this.state.count++;
     this.state.currentUserSequence = [];
-    this.DOM.count.textContent = `Count ${this.state.count}`;
+    this.DOM.count.textContent = `COUNT ${this.state.count}`;
     this.runThruSequence();
     return;
   };
