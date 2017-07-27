@@ -202,5 +202,3 @@
   const main = new Game(generateSequence(), DOM, sounds, generateSequence);
   main.start();
 })(window.chroma);
-
-// TODO: Fix restart button
