@@ -1,15 +1,27 @@
-(function() {
+(function(chroma) {
   // DOM
   const boxes = [...document.getElementsByClassName("box")];
+  const body = document.body;
   const start = document.getElementById("start");
   const strict = document.getElementById("strict");
-  const level = document.getElementById("level");
+  const count = document.getElementById("count");
   const red = document.getElementById("red");
   const blue = document.getElementById("blue");
   const green = document.getElementById("green");
   const yellow = document.getElementById("yellow");
   const reset = document.getElementById("reset");
-  const DOM = { boxes, start, level, red, blue, green, yellow, strict, reset };
+  const DOM = {
+    boxes,
+    start,
+    count,
+    red,
+    blue,
+    green,
+    yellow,
+    strict,
+    reset,
+    body
+  };
 
   // SOUNDS
   const audio1 = new Audio(
@@ -46,72 +58,82 @@
 
   // GAME LOGIC
 
-  function Game(sequence, DOM, sounds) {
+  function Game(sequence, DOM, sounds, generateSequence) {
     this.state = {
       sequence: sequence,
-      level: 0,
+      count: 0,
       currentUserSequence: [],
       strict: false,
       on: false
     };
     this.DOM = DOM;
     this.sounds = sounds;
+    this.generateSequence = generateSequence;
     this.timeout;
-    this.generateSequence = sequence;
+    this.interval;
   }
 
   Game.prototype.start = function() {
     let self = this;
     this.DOM.boxes.forEach(box => {
       box.addEventListener("click", e => {
+        const color = e.target.id;
+        self.DOM[color].style.backgroundColor = chroma(color).desaturate();
+        self.state.currentUserSequence.push(color);
+        self.sounds[color].play();
+        self.checkSequence();
         setTimeout(() => {
-          self.DOM[e.target.id].style.backgroundColor = "black";
-          self.state.currentUserSequence.push(e.target.id);
-          self.sounds[e.target.id].play();
-          self.checkSequence();
-          setTimeout(() => {
-            self.DOM[e.target.id].style.backgroundColor = `${e.target.id}`;
-          }, 300);
-        });
-
+          self.DOM[color].style.backgroundColor = `${color}`;
+        }, 300);
         return;
       });
     });
 
     this.DOM.reset.addEventListener("click", () => {
-      console.log("reset clicked");
       this.reset();
-      clearTimeout(this.timeout);
       return;
     });
 
     this.DOM.strict.addEventListener("change", e => {
       if (e.target.checked) {
-        this.state.strict = true;
+        let conf = confirm(
+          "Setting strict will reset the game. Are you sure you want to do this"
+        );
+        if (conf) {
+          this.state.strict = true;
+          this.reset();
+        }
         return;
       } else {
+        let conf = confirm(
+          "Setting to not strict will reset the game. Are you sure you want to do this?"
+        );
         this.state.strict = false;
+        this.reset();
         return;
       }
       return;
     });
 
     this.DOM.start.addEventListener("click", () => {
+      if (this.state.count > 0) return;
       this.nextRound();
       return;
     });
   };
 
   Game.prototype.runThruSequence = function() {
-    for (let i = 0; i < this.state.level; i++) {
+    this.DOM.body.style.pointerEvents = "none";
+    for (let i = 0; i < this.state.count; i++) {
       const color = this.state.sequence[i];
       let self = this;
       (function(self, color, i) {
         self.timeout = setTimeout(() => {
-          self.DOM[color].style.backgroundColor = "black";
+          self.DOM[color].style.backgroundColor = chroma(color).desaturate(2);
           self.sounds[color].play();
           setTimeout(() => {
             self.DOM[color].style.backgroundColor = `${color}`;
+            self.DOM.body.style.pointerEvents = "auto";
             return;
           }, 400);
         }, i * 1000);
@@ -129,17 +151,21 @@
         return;
       }
       if (userInput !== gameInput && this.state.strict) {
-        this.reset();
         this.sounds.lose.play();
+        setTimeout(() => {
+          this.reset();
+          return;
+        }, 3000);
         return;
       }
     }
 
     if (this.state.currentUserSequence.length === 20) {
       alert("You won! Yay!");
+      this.reset();
     }
 
-    if (this.state.currentUserSequence.length === this.state.level) {
+    if (this.state.currentUserSequence.length === this.state.count) {
       this.nextRound();
       return;
     }
@@ -149,34 +175,33 @@
 
   Game.prototype.resetCurrentRound = function() {
     this.state.currentUserSequence = [];
-    this.DOM.level.textContent = `Level ${this.state.level}`;
+    this.DOM.count.textContent = `Count ${this.state.count}`;
     this.runThruSequence();
     return;
   };
 
   Game.prototype.nextRound = function() {
-    this.state.level++;
+    this.state.count++;
     this.state.currentUserSequence = [];
-    this.DOM.level.textContent = `Level ${this.state.level}`;
+    this.DOM.count.textContent = `Count ${this.state.count}`;
     this.runThruSequence();
     return;
   };
 
   Game.prototype.reset = function() {
-    this.state = Object.assign(
-      {},
-      {
-        sequence: generateSequence(),
-        level: 0,
-        currentUserSequence: []
-      }
-    );
+    this.state = Object.assign({}, this.state, {
+      sequence: this.generateSequence(),
+      count: 0,
+      currentUserSequence: []
+    });
+
     this.nextRound();
+
     return;
   };
 
-  const main = new Game(generateSequence(), DOM, sounds);
+  const main = new Game(generateSequence(), DOM, sounds, generateSequence);
   main.start();
-})();
+})(window.chroma);
 
 // TODO: Fix restart button
